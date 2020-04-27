@@ -11,4 +11,5 @@
     "data": ["views/product.xml"],
     "demo": ["demo/putaway_strategies.xml"],
     "maintainers": ["kevinkhao", "sebastienbeau"],
+    "post_init_hook": "post_init_hook",
 }
