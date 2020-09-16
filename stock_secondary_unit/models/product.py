@@ -12,6 +12,7 @@ class StockProductSecondaryUnit(models.AbstractModel):
         string="Quantity On Hand (2Unit)",
         compute="_compute_secondary_unit_qty_available",
         digits="Product Unit of Measure",
+        compute_sudo=True,
     )
 
     def _compute_secondary_unit_qty_available(self):
@@ -46,4 +47,4 @@ class ProductProduct(models.Model):
 
     def _compute_quantities(self):
         super()._compute_quantities()
-        self._compute_secondary_unit_qty_available()
+        self.sudo()._compute_secondary_unit_qty_available()
