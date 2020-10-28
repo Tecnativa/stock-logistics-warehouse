@@ -1,4 +1,5 @@
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
+# Copyright 2020 Víctor Martínez - Tecnativa
 
 from odoo import api, fields, models
 
@@ -7,26 +8,16 @@ class ProductTemplate(models.Model):
     _inherit = "product.template"
 
     product_tmpl_putaway_ids = fields.One2many(
-        comodel_name="stock.fixed.putaway.strat",
+        comodel_name="stock.putaway.rule",
         inverse_name="product_tmpl_id",
         string="Product putaway strategies by product",
     )
 
     product_putaway_categ_ids = fields.Many2many(
-        comodel_name="stock.fixed.putaway.strat",
+        comodel_name="stock.putaway.rule",
         string="Product putaway strategies by category",
         compute="_compute_putaway_categ_ids",
     )
-
-    def _find_closest_categ_match(self, categ, putaway_lines):
-        """Returns the putaway line with the nearest product category"""
-        lines_match_categ = putaway_lines.filtered(lambda r: r.category_id == categ)
-        if lines_match_categ:
-            return lines_match_categ[0]
-        elif categ.parent_id:
-            return self._find_closest_categ_match(categ.parent_id, putaway_lines)
-        else:
-            return self.env["stock.fixed.putaway.strat"]
 
     def _get_categ_and_parents(self, categ):
         parent_categ_iterator = categ
@@ -42,17 +33,10 @@ class ProductTemplate(models.Model):
         i.e closest to our product category's parents)
         putaway.strat per product.putaway"""
         for rec in self:
-            res = self.env["stock.fixed.putaway.strat"]
             categ = rec.categ_id
             categs = self._get_categ_and_parents(categ)
             # get matching lines from our category or its parents
-            product_putaway_categ_lines = self.env["stock.fixed.putaway.strat"].search(
+            rules = self.env["stock.putaway.rule"].search(
                 [("category_id", "in", categs.ids)]
             )
-            # from these, get the matching putaway.strats and find
-            # the lowest-level category match
-            product_putaways = product_putaway_categ_lines.mapped("putaway_id")
-            for el in product_putaways:
-                lines = el.fixed_location_ids
-                res += self._find_closest_categ_match(categ, lines)
-            rec.product_putaway_categ_ids = res
+            rec.product_putaway_categ_ids = rules
