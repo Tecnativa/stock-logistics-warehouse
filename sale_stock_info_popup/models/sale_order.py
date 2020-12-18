@@ -31,57 +31,26 @@ class SaleOrderLine(models.Model):
                                        and line.product_type == 'product'
                                        and line.qty_to_deliver > 0)
 
-    @api.depends('product_id', 'customer_lead', 'product_uom_qty',
-                 'order_id.warehouse_id', 'order_id.commitment_date', 'order_id.date_order', 'order_id.state')
+    @api.depends('product_id', 'customer_lead', 'product_uom_qty', 'order_id.commitment_date', 'order_id.date_order', 'order_id.state')
     def _compute_qty_at_date(self):
         """ Based on _compute_free_qty method of sale.order.line
             model in Odoo v13 'sale_stock' module.
         """
         qty_processed_per_product = defaultdict(lambda: 0)
-        grouped_lines = defaultdict(lambda: self.env['sale.order.line'])
-        now = fields.Datetime.now()
-        for line in self.sorted(key=lambda r: r.sequence):
-            if not line.display_qty_widget:
-                continue
-            warehouse = line.order_id.warehouse_id
-            if line.order_id.commitment_date:
-                date = line.order_id.commitment_date
-            else:
-                if line.order_id.state in ['sale', 'done']:
-                    confirm_date = line.order_id.date_order
-                else:
-                    confirm_date = now
-                date = confirm_date + timedelta(line.customer_lead or 0.0)
-            grouped_lines[(warehouse.id, date)] |= line
-        treated = self.env[self._name]
-        for (warehouse_id, scheduled_date), lines in grouped_lines.items():
-            precomputed = {
-                item['id']: item for item
-                in lines.mapped("product_id").with_context(
-                    to_date=scheduled_date,
-                    warehouse=warehouse_id,
-                ).read(["qty_available", "free_qty", "virtual_available"])
-            }
-            for line in lines:
-                product = line.product_id
-                qty_available = precomputed[product.id]["qty_available"]
-                free_qty = precomputed[product.id]["free_qty"]
-                virtual_available = precomputed[product.id]["virtual_available"]
-                qty_processed = qty_processed_per_product[product.id]
-                line.scheduled_date = scheduled_date
-                line.qty_available_today = qty_available - qty_processed
-                line.free_qty_today = free_qty - qty_processed
-                virtual_available_at_date = virtual_available - qty_processed
-                line.virtual_available_at_date = virtual_available_at_date
-                qty_processed_per_product[product.id] += line.product_uom_qty
-            treated |= lines
-        remaining = (self - treated)
-        remaining.write({
-            "virtual_available_at_date": False,
-            "scheduled_date": False,
-            "free_qty_today": False,
-            "qty_available_today": False,
-        })
+        self.mapped("product_id").read(["qty_available", "free_qty", "virtual_available"])
+        for line in self:
+            scheduled_date = line.env.context.get('to_date', line.order_id.commitment_date or line.order_id.date_order)
+            product = line.product_id
+            qty_available = product.qty_available
+            free_qty = product.free_qty
+            virtual_available = product.virtual_available
+            qty_processed = qty_processed_per_product[product.id]
+            line.scheduled_date = scheduled_date
+            line.qty_available_today = qty_available - qty_processed
+            line.free_qty_today = free_qty - qty_processed
+            virtual_available_at_date = virtual_available - qty_processed
+            line.virtual_available_at_date = virtual_available_at_date
+            qty_processed_per_product[product.id] += line.product_uom_qty
 
     @api.depends('product_id', 'route_id', 'order_id.warehouse_id',
                  'product_id.route_ids')

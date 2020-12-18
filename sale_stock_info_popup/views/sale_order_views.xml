@@ -7,6 +7,10 @@
         <field name="inherit_id" ref="sale.view_order_form"/>
         <field name="model">sale.order</field>
         <field name="arch" type="xml">
+            <xpath expr="//page/field[@name='order_line']" position="attributes">
+                <attribute name="context">{"to_date": commitment_date or date_order, "warehouse": warehouse_id}</attribute>
+            </xpath>
+
             <xpath expr="//page/field[@name='order_line']/tree/field[@name='product_uom_qty']" position="after">
                 <!-- below fields are used in the widget qty_at_date_widget -->
                 <field name="product_type" invisible="1"/>
