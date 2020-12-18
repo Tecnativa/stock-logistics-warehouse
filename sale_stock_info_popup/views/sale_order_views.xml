@@ -14,7 +14,6 @@
             <xpath expr="//page/field[@name='order_line']/tree/field[@name='product_uom_qty']" position="after">
                 <!-- below fields are used in the widget qty_at_date_widget -->
                 <field name="product_type" invisible="1"/>
-                <field name="virtual_available_at_date" invisible="1"/>
                 <field name="qty_available_today" invisible="1"/>
                 <field name="free_qty_today" invisible="1"/>
                 <field name="scheduled_date" invisible="1"/>

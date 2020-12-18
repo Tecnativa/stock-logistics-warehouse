@@ -96,7 +96,6 @@ class SaleStockInfoPopup(SavepointCase):
         line = so.order_line[0]
         self.assertAlmostEqual(line.scheduled_date, datetime.now(),
                                delta=timedelta(seconds=10))
-        self.assertAlmostEqual(line.virtual_available_at_date, 32)
         self.assertAlmostEqual(line.free_qty_today, 35)
         self.assertAlmostEqual(line.qty_available_today, 40)
         self.assertAlmostEqual(line.qty_to_deliver, 1)

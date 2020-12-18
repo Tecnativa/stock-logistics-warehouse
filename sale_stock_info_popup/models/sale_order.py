@@ -12,7 +12,6 @@ class SaleOrderLine(models.Model):
     _inherit = 'sale.order.line'
 
     product_type = fields.Selection(related='product_id.type')
-    virtual_available_at_date = fields.Float(compute='_compute_qty_at_date')
     scheduled_date = fields.Datetime(compute='_compute_qty_at_date')
     free_qty_today = fields.Float(compute='_compute_qty_at_date')
     qty_available_today = fields.Float(compute='_compute_qty_at_date')
@@ -31,25 +30,25 @@ class SaleOrderLine(models.Model):
                                        and line.product_type == 'product'
                                        and line.qty_to_deliver > 0)
 
-    @api.depends('product_id', 'customer_lead', 'product_uom_qty', 'order_id.commitment_date', 'order_id.date_order', 'order_id.state')
+    @api.depends('product_id', 'product_uom_qty', 'order_id.commitment_date', 'order_id.date_order')
     def _compute_qty_at_date(self):
         """ Based on _compute_free_qty method of sale.order.line
             model in Odoo v13 'sale_stock' module.
+
+            This version is much simplified due to performance problems while
+            using v13 logic in v12 ORM.
         """
         qty_processed_per_product = defaultdict(lambda: 0)
-        self.mapped("product_id").read(["qty_available", "free_qty", "virtual_available"])
+        self.mapped("product_id").read(["qty_available", "free_qty"])
         for line in self:
             scheduled_date = line.env.context.get('to_date', line.order_id.commitment_date or line.order_id.date_order)
             product = line.product_id
             qty_available = product.qty_available
             free_qty = product.free_qty
-            virtual_available = product.virtual_available
             qty_processed = qty_processed_per_product[product.id]
             line.scheduled_date = scheduled_date
             line.qty_available_today = qty_available - qty_processed
             line.free_qty_today = free_qty - qty_processed
-            virtual_available_at_date = virtual_available - qty_processed
-            line.virtual_available_at_date = virtual_available_at_date
             qty_processed_per_product[product.id] += line.product_uom_qty
 
     @api.depends('product_id', 'route_id', 'order_id.warehouse_id',

@@ -4,12 +4,7 @@
 <templates>
     <div t-name="sale_stock.qtyAtDate">
         <div t-att-class="!widget.data.display_qty_widget ? 'd-none' : ''">
-            <t t-if="widget.data.virtual_available_at_date &lt; widget.data.qty_to_deliver and !widget.data.is_mto">
-                <a tabindex="0" class="fa fa-info-circle text-danger"/>
-            </t>
-            <t t-else="">
-                <a tabindex="0" class="fa fa-info-circle text-primary"/>
-            </t>
+            <a tabindex="0" class="fa fa-info-circle text-primary"/>
         </div>
     </div>
 
@@ -17,11 +12,6 @@
         <table>
             <tbody>
                 <t t-if="!data.is_mto">
-                    <tr>
-                        <td><strong>Forecasted Stock</strong><br /><small>On <span t-esc="data.delivery_date"/></small></td>
-                        <td><t t-esc='data.virtual_available_at_date'/>
-                        <t t-esc='data.product_uom &amp;&amp; data.product_uom.data.display_name'/></td>
-                    </tr>
                     <tr>
                         <td><strong>Available</strong><br /><small>All planned operations included</small></td>
                         <td><t t-esc='data.free_qty_today'/>
