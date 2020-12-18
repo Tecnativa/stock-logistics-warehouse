@@ -16,8 +16,6 @@ class SaleOrderLine(models.Model):
     scheduled_date = fields.Datetime(compute='_compute_qty_at_date')
     free_qty_today = fields.Float(compute='_compute_qty_at_date')
     qty_available_today = fields.Float(compute='_compute_qty_at_date')
-    warehouse_id = fields.Many2one(
-        'stock.warehouse', compute='_compute_qty_at_date')
     qty_to_deliver = fields.Float(compute='_compute_qty_to_deliver')
     is_mto = fields.Boolean(compute='_compute_is_mto')
     display_qty_widget = fields.Boolean(compute='_compute_qty_to_deliver')
@@ -34,7 +32,7 @@ class SaleOrderLine(models.Model):
                                        and line.qty_to_deliver > 0)
 
     @api.depends('product_id', 'customer_lead', 'product_uom_qty',
-                 'order_id.warehouse_id', 'order_id.commitment_date')
+                 'order_id.warehouse_id', 'order_id.commitment_date', 'order_id.date_order', 'order_id.state')
     def _compute_qty_at_date(self):
         """ Based on _compute_free_qty method of sale.order.line
             model in Odoo v13 'sale_stock' module.
@@ -45,7 +43,7 @@ class SaleOrderLine(models.Model):
         for line in self.sorted(key=lambda r: r.sequence):
             if not line.display_qty_widget:
                 continue
-            line.warehouse_id = line.order_id.warehouse_id
+            warehouse = line.order_id.warehouse_id
             if line.order_id.commitment_date:
                 date = line.order_id.commitment_date
             else:
@@ -54,15 +52,21 @@ class SaleOrderLine(models.Model):
                 else:
                     confirm_date = now
                 date = confirm_date + timedelta(line.customer_lead or 0.0)
-            grouped_lines[(line.warehouse_id.id, date)] |= line
-        treated = self.browse()
-        for (warehouse, scheduled_date), lines in grouped_lines.items():
+            grouped_lines[(warehouse.id, date)] |= line
+        treated = self.env[self._name]
+        for (warehouse_id, scheduled_date), lines in grouped_lines.items():
+            precomputed = {
+                item['id']: item for item
+                in lines.mapped("product_id").with_context(
+                    to_date=scheduled_date,
+                    warehouse=warehouse_id,
+                ).read(["qty_available", "free_qty", "virtual_available"])
+            }
             for line in lines:
-                product = line.product_id.with_context(
-                    to_date=scheduled_date, warehouse=warehouse)
-                qty_available = product.qty_available
-                free_qty = product.free_qty
-                virtual_available = product.virtual_available
+                product = line.product_id
+                qty_available = precomputed[product.id]["qty_available"]
+                free_qty = precomputed[product.id]["free_qty"]
+                virtual_available = precomputed[product.id]["virtual_available"]
                 qty_processed = qty_processed_per_product[product.id]
                 line.scheduled_date = scheduled_date
                 line.qty_available_today = qty_available - qty_processed
@@ -77,7 +81,6 @@ class SaleOrderLine(models.Model):
             "scheduled_date": False,
             "free_qty_today": False,
             "qty_available_today": False,
-            "warehouse_id": False,
         })
 
     @api.depends('product_id', 'route_id', 'order_id.warehouse_id',
