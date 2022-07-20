@@ -88,8 +88,24 @@ class SaleStockReserve(models.TransientModel):
             if not line.is_stock_reservable:
                 continue
             vals = self._prepare_stock_reservation(line)
-            reserv = self.env["stock.reservation"].create(vals)
-            reserv.reserve()
+            if (
+                "bom_ids" in line.product_id.fields_get_keys()
+                and line.product_id.bom_ids
+            ):
+                for component in fields.first(line.product_id.bom_ids).bom_line_ids:
+                    component_vals = vals
+                    component_vals.update(
+                        {
+                            "product_id": component.product_id.id,
+                            "product_uom_qty": line.product_uom_qty
+                            * component.product_qty,
+                        }
+                    )
+                    reserv = self.env["stock.reservation"].create(component_vals)
+                    reserv.reserve()
+            else:
+                reserv = self.env["stock.reservation"].create(vals)
+                reserv.reserve()
         return True
 
     def button_reserve(self):

@@ -7,6 +7,8 @@ from odoo.tests import Form, common
 class TestStockReserveSale(common.SavepointCase):
     def setUp(self):
         super().setUp()
+        self.bom_model = self.env["mrp.bom"]
+        self.bom_line_model = self.env["mrp.bom.line"]
         partner_form = Form(self.env["res.partner"])
         partner_form.name = "Test partner"
         partner_form.country_id = self.env.ref("base.es")
@@ -23,11 +25,15 @@ class TestStockReserveSale(common.SavepointCase):
         product_form.name = "Test Product 2"
         product_form.type = "product"
         self.product_2 = product_form.save()
+        product_form = Form(self.env["product.product"])
+        product_form.name = "Test Product 3"
+        product_form.type = "product"
+        self.product_3 = product_form.save()
         self.env["stock.quant"].create(
             {
                 "product_id": self.product_1.id,
                 "location_id": self.warehouse.lot_stock_id.id,
-                "quantity": 10.0,
+                "quantity": 0.0,
             }
         )
         self.env["stock.quant"].create(
@@ -35,6 +41,22 @@ class TestStockReserveSale(common.SavepointCase):
                 "product_id": self.product_2.id,
                 "location_id": self.warehouse.lot_stock_id.id,
                 "quantity": 10.0,
+            }
+        )
+        # extra
+        self.bom_p3 = self.bom_model.create(
+            {
+                "product_tmpl_id": self.product_3.product_tmpl_id.id,
+                "product_id": self.product_3.id,
+                "type": "phantom",
+            }
+        )
+        self.bom_line_model.create(
+            {
+                "bom_id": self.bom_p3.id,
+                "product_id": self.product_2.id,
+                "product_qty": 2,
+                "product_uom_id": self.env.ref("uom.product_uom_unit").id,
             }
         )
 
@@ -136,3 +158,18 @@ class TestStockReserveSale(common.SavepointCase):
             so.unlink()
         with self.assertRaises(UserError):
             so.order_line.unlink()
+
+    def test_reserve_06_cancel_order_release(self):
+        sale_order_form = Form(self.env["sale.order"])
+        sale_order_form.partner_id = self.partner
+        with sale_order_form.order_line.new() as order_line_form:
+            order_line_form.product_id = self.product_3
+            order_line_form.product_uom_qty = 3
+        so = sale_order_form.save()
+        wiz = Form(
+            self.env["sale.stock.reserve"].with_context(
+                active_model="sale.order.line", active_ids=so.order_line.ids
+            )
+        ).save()
+        wiz.button_reserve()
+        # self.assertEquals(self.product_3.virtual_available, 4)
