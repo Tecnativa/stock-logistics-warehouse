@@ -122,8 +122,10 @@ class StockReservation(models.Model):
         A date until which the product is reserved can be specified.
         """
         self.write({"date_expected": fields.Datetime.now()})
-        self.mapped("move_id")._action_confirm(merge=False)
-        self.mapped("move_id.picking_id").action_assign()
+        moves = self.mapped("move_id")._action_confirm(merge=False)
+        # We need to use returned moves to prevent CacheMiss error according to
+        # removed moves with mrp addon installed (if the product is a kit).
+        moves.mapped("picking_id").action_assign()
         return True
 
     def release_reserve(self):
