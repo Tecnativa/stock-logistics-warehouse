@@ -12,7 +12,7 @@
                     type="action"
                     string="Reserve Stock"
                     help="Pre-book products from stock"
-                    attrs="{'invisible': [('is_stock_reservable', '=', False)]}"
+                    attrs="{'invisible': [('is_stock_reservable', '=', False),('has_stock_reservation','=', False)]}"
                 />
             </button>
             <field name="order_line" position="attributes">
