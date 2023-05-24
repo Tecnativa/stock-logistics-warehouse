@@ -226,7 +226,7 @@ class StockRequestOrder(models.Model):
                 _("There should be at least one request item for confirming the order.")
             )
         self.mapped("stock_request_ids").action_confirm()
-        self.write({"state": "open"})
+        self.filtered(lambda x: x.state != "done").write({"state": "open"})
         return True
 
     def action_draft(self):

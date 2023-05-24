@@ -12,6 +12,15 @@ from odoo.tests import common, new_test_user
 class TestStockRequest(common.TransactionCase):
     def setUp(self):
         super().setUp()
+        self.env = self.env(
+            context=dict(
+                self.env.context,
+                mail_create_nolog=True,
+                mail_create_nosubscribe=True,
+                mail_notrack=True,
+                no_reset_password=True,
+            )
+        )
         # common models
         self.stock_request = self.env["stock.request"]
         self.request_order = self.env["stock.request.order"]
@@ -35,25 +44,17 @@ class TestStockRequest(common.TransactionCase):
         self.wh2 = self.env["stock.warehouse"].search(
             [("company_id", "=", self.company_2.id)], limit=1
         )
-        ctx = {
-            "mail_create_nolog": True,
-            "mail_create_nosubscribe": True,
-            "mail_notrack": True,
-            "no_reset_password": True,
-        }
         self.stock_request_user = new_test_user(
             self.env,
             login="stock_request_user",
             groups="stock_request.group_stock_request_user",
             company_ids=[(6, 0, [self.main_company.id, self.company_2.id])],
-            context=ctx,
         )
         self.stock_request_manager = new_test_user(
             self.env,
             login="stock_request_manager",
             groups="stock_request.group_stock_request_manager",
             company_ids=[(6, 0, [self.main_company.id, self.company_2.id])],
-            context=ctx,
         )
         self.product = self._create_product("SH", "Shoes", False)
         self.product_company_2 = self._create_product(
@@ -143,6 +144,11 @@ class TestStockRequest(common.TransactionCase):
 class TestStockRequestBase(TestStockRequest):
     def setUp(self):
         super().setUp()
+
+    def _create_stock_quant(self, product, location, qty):
+        self.env["stock.quant"].create(
+            {"product_id": product.id, "location_id": location.id, "quantity": qty}
+        )
 
     def test_defaults(self):
         vals = {
@@ -502,6 +508,140 @@ class TestStockRequestBase(TestStockRequest):
         }
         with self.assertRaises(exceptions.ValidationError):
             self.request_order.with_user(self.stock_request_user).create(vals)
+
+    def test_stock_request_order_available_stock_01(self):
+        self.main_company.stock_request_check_available_first = True
+        self._create_stock_quant(self.product, self.warehouse.lot_stock_id, 6)
+        expected_date = fields.Datetime.now()
+        vals = {
+            "company_id": self.main_company.id,
+            "warehouse_id": self.warehouse.id,
+            "location_id": self.warehouse.lot_stock_id.id,
+            "expected_date": expected_date,
+            "stock_request_ids": [
+                (
+                    0,
+                    0,
+                    {
+                        "product_id": self.product.id,
+                        "product_uom_id": self.product.uom_id.id,
+                        "product_uom_qty": 5.0,
+                        "company_id": self.main_company.id,
+                        "warehouse_id": self.warehouse.id,
+                        "location_id": self.warehouse.lot_stock_id.id,
+                        "expected_date": expected_date,
+                    },
+                )
+            ],
+        }
+        order = self.request_order.with_user(self.stock_request_user).create(vals)
+        order.action_confirm()
+        self.assertEqual(order.stock_request_ids.state, "done")
+        self.assertEqual(order.state, "done")
+        self.assertEqual(len(order.stock_request_ids.move_ids), 1)
+        quant_stock = self.product.stock_quant_ids.filtered(
+            lambda x: x.location_id == self.warehouse.lot_stock_id
+        )
+        self.assertEqual(quant_stock.quantity, 6)
+
+    def test_stock_request_order_available_stock_02(self):
+        self.main_company.stock_request_check_available_first = True
+        self.location_child_1 = self._create_location(
+            name="Child 1",
+            location_id=self.warehouse.lot_stock_id.id,
+            company_id=self.main_company.id,
+        )
+        self.location_child_2 = self._create_location(
+            name="Child 2",
+            location_id=self.warehouse.lot_stock_id.id,
+            company_id=self.main_company.id,
+        )
+        self._create_stock_quant(self.product, self.location_child_1, 6)
+        expected_date = fields.Datetime.now()
+        vals = {
+            "company_id": self.main_company.id,
+            "warehouse_id": self.warehouse.id,
+            "location_id": self.location_child_2.id,
+            "expected_date": expected_date,
+            "stock_request_ids": [
+                (
+                    0,
+                    0,
+                    {
+                        "product_id": self.product.id,
+                        "product_uom_id": self.product.uom_id.id,
+                        "product_uom_qty": 5.0,
+                        "company_id": self.main_company.id,
+                        "warehouse_id": self.warehouse.id,
+                        "location_id": self.location_child_2.id,
+                        "expected_date": expected_date,
+                    },
+                )
+            ],
+        }
+        order = self.request_order.with_user(self.stock_request_user).create(vals)
+        order.action_confirm()
+        self.assertEqual(order.stock_request_ids.state, "done")
+        self.assertEqual(order.state, "done")
+        self.assertEqual(len(order.stock_request_ids.move_ids), 1)
+        quant_child_1 = self.product.stock_quant_ids.filtered(
+            lambda x: x.location_id == self.location_child_1
+        )
+        self.assertEqual(quant_child_1.quantity, 1)
+        quant_child_2 = self.product.stock_quant_ids.filtered(
+            lambda x: x.location_id == self.location_child_2
+        )
+        self.assertEqual(quant_child_2.quantity, 5)
+
+    def test_stock_request_order_available_stock_03(self):
+        self.main_company.stock_request_check_available_first = True
+        self.location_child_1 = self._create_location(
+            name="Child 1",
+            location_id=self.warehouse.lot_stock_id.id,
+            company_id=self.main_company.id,
+        )
+        self.location_child_2 = self._create_location(
+            name="Child 2",
+            location_id=self.warehouse.lot_stock_id.id,
+            company_id=self.main_company.id,
+        )
+        self._create_stock_quant(self.product, self.location_child_1, 3)
+        self._create_stock_quant(self.product, self.location_child_2, 2)
+        expected_date = fields.Datetime.now()
+        vals = {
+            "company_id": self.main_company.id,
+            "warehouse_id": self.warehouse.id,
+            "location_id": self.location_child_2.id,
+            "expected_date": expected_date,
+            "stock_request_ids": [
+                (
+                    0,
+                    0,
+                    {
+                        "product_id": self.product.id,
+                        "product_uom_id": self.product.uom_id.id,
+                        "product_uom_qty": 5.0,
+                        "company_id": self.main_company.id,
+                        "warehouse_id": self.warehouse.id,
+                        "location_id": self.location_child_2.id,
+                        "expected_date": expected_date,
+                    },
+                )
+            ],
+        }
+        order = self.request_order.with_user(self.stock_request_user).create(vals)
+        order.action_confirm()
+        self.assertEqual(order.stock_request_ids.state, "done")
+        self.assertEqual(order.state, "done")
+        self.assertEqual(len(order.stock_request_ids.move_ids), 2)
+        quant_child_1 = self.product.stock_quant_ids.filtered(
+            lambda x: x.location_id == self.location_child_1
+        )
+        self.assertEqual(quant_child_1.quantity, 0)
+        quant_child_2 = self.product.stock_quant_ids.filtered(
+            lambda x: x.location_id == self.location_child_2
+        )
+        self.assertEqual(quant_child_2.quantity, 5)
 
     def test_stock_request_validations_01(self):
         vals = {

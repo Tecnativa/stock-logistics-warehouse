@@ -258,8 +258,11 @@ class StockRequest(models.Model):
             raise ValidationError(_("The picking policy must be equal to the order"))
 
     def _action_confirm(self):
+        self.filtered(
+            lambda x: x.company_id.stock_request_check_available_first
+        )._action_use_stock_available()
         self._action_launch_procurement_rule()
-        self.write({"state": "open"})
+        self.filtered(lambda x: x.state != "done").write({"state": "open"})
 
     def action_confirm(self):
         self._action_confirm()
@@ -339,6 +342,72 @@ class StockRequest(models.Model):
 
     def _skip_procurement(self):
         return self.state != "draft" or self.product_id.type not in ("consu", "product")
+
+    def _prepare_stock_move(self, location, qty):
+        return {
+            "name": self.product_id.display_name,
+            "company_id": self.company_id.id,
+            "product_id": self.product_id.id,
+            "product_uom_qty": qty,
+            "product_uom": self.product_id.uom_id.id,
+            "location_id": location.id,
+            "location_dest_id": self.location_id.id,
+            "state": "draft",
+            "reference": self.name,
+        }
+
+    def _prepare_stock_request_allocation(self, move):
+        return {
+            "stock_request_id": self.id,
+            "stock_move_id": move.id,
+            "requested_product_uom_qty": move.product_uom_qty,
+        }
+
+    def _get_qty_list(self):
+        """Prepare list related to available quantity from locations"""
+        pending_qty = self.product_uom_qty
+        product = self.product_id.sudo()
+        res = []
+        lot_stock = self.warehouse_id.lot_stock_id
+        locations = lot_stock.child_ids or lot_stock
+        # Full available with only one location
+        for location in locations:
+            product_l = product.with_context(location=location.id)
+            if product_l.qty_available >= pending_qty:
+                res.append({"location_id": location, "qty": pending_qty})
+                pending_qty = 0
+                break
+        # Available with multiple locations
+        if pending_qty > 0:
+            full_locations = lot_stock.child_ids + lot_stock
+            for location in full_locations:
+                product_l = product.with_context(location=location.id)
+                if product_l.qty_available > 0 and pending_qty > 0:
+                    qty = min(product_l.qty_available, pending_qty)
+                    res.append({"location_id": location, "qty": qty})
+                    pending_qty -= qty
+        return res
+
+    def _action_use_stock_available(self):
+        allocation_model = self.env["stock.request.allocation"]
+        stock_move_model = self.env["stock.move"].sudo()
+        for request in self:
+            if request.product_id.sudo().qty_available >= request.product_uom_qty:
+                qty_list = request._get_qty_list()
+                for qty_item in qty_list:
+                    # Stock move create + confirm
+                    move = stock_move_model.create(
+                        request._prepare_stock_move(
+                            qty_item["location_id"], qty_item["qty"]
+                        )
+                    )
+                    move._action_confirm()
+                    # Create allocation + done move
+                    allocation_model.create(
+                        request._prepare_stock_request_allocation(move)
+                    )
+                    move.quantity_done = move.product_uom_qty
+                    move._action_done()
 
     def _action_launch_procurement_rule(self):
         """
