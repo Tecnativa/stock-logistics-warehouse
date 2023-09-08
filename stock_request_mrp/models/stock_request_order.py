@@ -5,7 +5,8 @@ from odoo import api, fields, models
 
 
 class StockRequestOrder(models.Model):
-    _inherit = "stock.request.order"
+    _inherit = ["stock.request.order", "stock.request.mixin"]
+    _name = "stock.request.order"
 
     production_ids = fields.One2many(
         "mrp.production",
@@ -42,3 +43,8 @@ class StockRequestOrder(models.Model):
             ]
             action["res_id"] = productions.id
         return action
+
+    def _prepare_note_exception_quantity_mo_values(self, productions):
+        values = super()._prepare_note_exception_quantity_mo_values(productions)
+        values.update(stock_request_order=self)
+        return values

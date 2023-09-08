@@ -1,5 +1,6 @@
 # Copyright 2020 ForgeFlow S.L. (https://www.forgeflow.com)
 # Copyright 2022 Tecnativa - Pedro M. Baeza
+# Copyright 2023 Tecnativa - Víctor Martínez
 # License LGPL-3.0 or later (https://www.gnu.org/licenses/lgpl.html).
 
 from odoo import api, fields, models
@@ -74,3 +75,43 @@ class MrpProduction(models.Model):
                 for request in self.stock_request_ids
             ]
         return res
+
+    def _action_cancel(self):
+        """Añadimos excepcion a stock.request o stock.request.order."""
+        res = super()._action_cancel()
+        self._exception_on_stock_request()
+        return res
+
+    def _get_all_sources(self):
+        """Método para obtener el primer parent."""
+        res = self.env["mrp.production"]
+        for item in self:
+            for source in item._get_sources():
+                res += source
+                res += source._get_all_sources()
+        return res
+
+    def _exception_on_stock_request(self):
+        """Agrupamos por stock.request o stock.request.order con todas
+        las fabricaciones. Necesitamos obtener la fabricacion padre para que aplique
+        si se cancela una fabricación de nivel 3 por ejemplo."""
+        requests_info = {}
+        request_orders_info = {}
+        production_model = self.env["mrp.production"]
+        for item in self:
+            sources = item._get_all_sources() or item
+            for request in sources.stock_request_ids:
+                if request.order_id:
+                    if request.order_id not in request_orders_info:
+                        request_orders_info[request.order_id] = production_model
+                    request_orders_info[request.order_id] += item
+                else:
+                    if request not in requests_info:
+                        requests_info[request] = production_model
+                    requests_info[request] += item
+        # stock.request
+        for request, productions in requests_info.items():
+            request._log_exception_from_manufacture(productions)
+        # stock.request.order
+        for order, productions in request_orders_info.items():
+            order._log_exception_from_manufacture(productions)

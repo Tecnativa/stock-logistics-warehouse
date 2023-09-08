@@ -6,7 +6,8 @@ from odoo.exceptions import ValidationError
 
 
 class StockRequest(models.Model):
-    _inherit = "stock.request"
+    _inherit = ["stock.request", "stock.request.mixin"]
+    _name = "stock.request"
 
     production_ids = fields.Many2many(
         "mrp.production",
@@ -62,3 +63,8 @@ class StockRequest(models.Model):
             ]
             action["res_id"] = productions.id
         return action
+
+    def _prepare_note_exception_quantity_mo_values(self, productions):
+        values = super()._prepare_note_exception_quantity_mo_values(productions)
+        values.update(stock_request=self)
+        return values
