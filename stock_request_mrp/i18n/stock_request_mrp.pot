@@ -6,6 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Odoo Server 14.0\n"
 "Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-09-08 16:15+0000\n"
+"PO-Revision-Date: 2023-09-08 16:15+0000\n"
 "Last-Translator: \n"
 "Language-Team: \n"
 "MIME-Version: 1.0\n"
@@ -14,16 +16,38 @@ msgstr ""
 "Plural-Forms: \n"
 
 #. module: stock_request_mrp
+#: model_terms:ir.ui.view,arch_db:stock_request_mrp.exception_mrp_cancel
+msgid ": cancelled"
+msgstr ""
+
+#. module: stock_request_mrp
 #: model:ir.model.fields,field_description:stock_request_mrp.field_mrp_production__display_name
 #: model:ir.model.fields,field_description:stock_request_mrp.field_stock_request__display_name
+#: model:ir.model.fields,field_description:stock_request_mrp.field_stock_request_mixin__display_name
 #: model:ir.model.fields,field_description:stock_request_mrp.field_stock_request_order__display_name
 #: model:ir.model.fields,field_description:stock_request_mrp.field_stock_rule__display_name
 msgid "Display Name"
 msgstr ""
 
 #. module: stock_request_mrp
+#: model_terms:ir.ui.view,arch_db:stock_request_mrp.exception_mrp_cancel
+msgid "Exception(s) occurred on the stock request order(s):"
+msgstr ""
+
+#. module: stock_request_mrp
+#: model_terms:ir.ui.view,arch_db:stock_request_mrp.exception_mrp_cancel
+msgid "Exception(s) occurred on the stock request(s):"
+msgstr ""
+
+#. module: stock_request_mrp
+#: model_terms:ir.ui.view,arch_db:stock_request_mrp.exception_mrp_cancel
+msgid "Exception(s):"
+msgstr ""
+
+#. module: stock_request_mrp
 #: model:ir.model.fields,field_description:stock_request_mrp.field_mrp_production__id
 #: model:ir.model.fields,field_description:stock_request_mrp.field_stock_request__id
+#: model:ir.model.fields,field_description:stock_request_mrp.field_stock_request_mixin__id
 #: model:ir.model.fields,field_description:stock_request_mrp.field_stock_request_order__id
 #: model:ir.model.fields,field_description:stock_request_mrp.field_stock_rule__id
 msgid "ID"
@@ -32,6 +56,7 @@ msgstr ""
 #. module: stock_request_mrp
 #: model:ir.model.fields,field_description:stock_request_mrp.field_mrp_production____last_update
 #: model:ir.model.fields,field_description:stock_request_mrp.field_stock_request____last_update
+#: model:ir.model.fields,field_description:stock_request_mrp.field_stock_request_mixin____last_update
 #: model:ir.model.fields,field_description:stock_request_mrp.field_stock_request_order____last_update
 #: model:ir.model.fields,field_description:stock_request_mrp.field_stock_rule____last_update
 msgid "Last Modified on"
@@ -41,6 +66,11 @@ msgstr ""
 #: model_terms:ir.ui.view,arch_db:stock_request_mrp.stock_request_order_form
 #: model_terms:ir.ui.view,arch_db:stock_request_mrp.view_stock_request_form
 msgid "MOs"
+msgstr ""
+
+#. module: stock_request_mrp
+#: model_terms:ir.ui.view,arch_db:stock_request_mrp.exception_mrp_cancel
+msgid "Manual actions may be needed."
 msgstr ""
 
 #. module: stock_request_mrp
@@ -68,6 +98,11 @@ msgstr ""
 #. module: stock_request_mrp
 #: model:ir.model.fields,field_description:stock_request_mrp.field_mrp_production__stock_request_count
 msgid "Stock Request #"
+msgstr ""
+
+#. module: stock_request_mrp
+#: model:ir.model,name:stock_request_mrp.model_stock_request_mixin
+msgid "Stock Request Mixin"
 msgstr ""
 
 #. module: stock_request_mrp
