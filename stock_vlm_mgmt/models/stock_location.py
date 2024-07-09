@@ -13,7 +13,12 @@ class StockLocation(models.Model):
             ("test", "Test"),
         ],
     )
-    vlm_address = fields.Char()
+    vlm_address = fields.Char(
+        help=(
+            "An VLM normally will be behind some propietary proxy that handles several "
+            "VLMs at once, so we need to set which one corresponds to this location"
+        )
+    )
     vlm_hostname = fields.Char()
     vlm_port = fields.Char()
     vlm_removal_strategy = fields.Selection(
@@ -126,6 +131,7 @@ class StockLocation(models.Model):
         action["context"] = dict(
             self.env.context,
             vlm_inventory_mode=True,
+            default_location_id=self.id,
         )
         view_id = self.env.ref("stock_vlm_mgmt.view_stock_quant_inventory_tree").id
         action.update(
