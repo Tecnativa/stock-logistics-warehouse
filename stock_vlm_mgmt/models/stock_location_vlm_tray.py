@@ -1,7 +1,7 @@
 # Copyright 2023 Tecnativa - David Vidal
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
 from odoo import api, fields, models
-from odoo.osv import expression
+from odoo.fields import Domain
 
 
 class StockLocationVlmTray(models.Model):
@@ -50,7 +50,7 @@ class StockLocationVlmTray(models.Model):
         self.ensure_one()
         domain = [("tray_id", "=", self.id)]
         if (pos_x is not None) and (pos_y is not None):
-            domain = expression.AND(
+            domain = Domain.AND(
                 [domain, [("pos_x", "=", pos_x), ("pos_y", "=", pos_y)]]
             )
         vlm_quant = self.env["stock.quant.vlm"].search(domain)
