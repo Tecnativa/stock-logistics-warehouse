@@ -1,0 +1,1 @@
+odoo-addon-stock_vlm_mgmt @ git+https://github.com/OCA/stock-logistics-warehouse.git@refs/pull/2643/head#subdirectory=stock_vlm_mgmt
