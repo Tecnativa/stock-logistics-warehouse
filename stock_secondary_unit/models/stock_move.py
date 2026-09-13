@@ -52,6 +52,20 @@ class StockMove(models.Model):
     def onchange_product_uom_for_secondary(self):
         self._onchange_helper_product_uom_for_secondary()
 
+    @api.onchange("secondary_uom_id")
+    def _onchange_secondary_uom_id_for_qty(self):
+        # When the secondary unit is picked *after* the secondary quantity
+        # (the natural tab order on a manually-built transfer with no sale
+        # order behind it, e.g. a stock-only delivery), the @api.depends
+        # -driven recompute of product_uom_qty above is silently skipped:
+        # the client's onchange payload still carries the stale
+        # product_uom_qty it got back from the first call (made while
+        # secondary_uom_id was still empty), and being readonly=False the
+        # compute engine treats that as a user-provided value and protects
+        # it from being overwritten. An explicit onchange assignment isn't
+        # subject to that protection.
+        self._compute_helper_target_field_qty()
+
     def _onchange_helper_product_uom_for_secondary(self):
         # A count-preserving secondary unit (e.g. pieces vs. weight) must
         # never be recomputed from the primary quantity - that's the whole
