@@ -4,7 +4,7 @@ from odoo import fields, models
 
 
 class ProductProduct(models.Model):
-    _inherit = ["product.product", "stock.product.secondary.unit.mixin"]
+    _inherit = ("product.product", "stock.product.secondary.unit.mixin")
     _name = "product.product"
 
     stock_secondary_uom_id = fields.Many2one(

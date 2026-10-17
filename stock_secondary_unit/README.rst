@@ -1,3 +1,7 @@
+.. image:: https://odoo-community.org/readme-banner-image
+   :target: https://odoo-community.org/get-involved?utm_source=readme
+   :alt: Odoo Community Association
+
 ====================
 Stock Secondary Unit
 ====================
@@ -13,17 +17,17 @@ Stock Secondary Unit
 .. |badge1| image:: https://img.shields.io/badge/maturity-Production%2FStable-green.png
     :target: https://odoo-community.org/page/development-status
     :alt: Production/Stable
-.. |badge2| image:: https://img.shields.io/badge/licence-AGPL--3-blue.png
+.. |badge2| image:: https://img.shields.io/badge/license-AGPL--3-blue.png
     :target: http://www.gnu.org/licenses/agpl-3.0-standalone.html
     :alt: License: AGPL-3
 .. |badge3| image:: https://img.shields.io/badge/github-OCA%2Fstock--logistics--warehouse-lightgray.png?logo=github
-    :target: https://github.com/OCA/stock-logistics-warehouse/tree/19.0/stock_secondary_unit
+    :target: https://github.com/OCA/stock-logistics-warehouse/tree/20.0/stock_secondary_unit
     :alt: OCA/stock-logistics-warehouse
 .. |badge4| image:: https://img.shields.io/badge/weblate-Translate%20me-F47D42.png
-    :target: https://translation.odoo-community.org/projects/stock-logistics-warehouse-19-0/stock-logistics-warehouse-19-0-stock_secondary_unit
+    :target: https://translation.odoo-community.org/projects/stock-logistics-warehouse-20-0/stock-logistics-warehouse-20-0-stock_secondary_unit
     :alt: Translate me on Weblate
 .. |badge5| image:: https://img.shields.io/badge/runboat-Try%20me-875A7B.png
-    :target: https://runboat.odoo-community.org/builds?repo=OCA/stock-logistics-warehouse&target_branch=19.0
+    :target: https://runboat.odoo-community.org/builds?repo=OCA/stock-logistics-warehouse&target_branch=20.0
     :alt: Try me on Runboat
 
 |badge1| |badge2| |badge3| |badge4| |badge5|
@@ -54,7 +58,8 @@ not just converted once on the product form.
   on the product form next to "On Hand", showing the current stock
   quantity converted into it. This is read-only, informational, and
   independent of whatever secondary unit an individual move ends up
-  using.
+  using. The same quantity is shown on the product card of the catalog
+  (sale, purchase...).
 
 **Why ``dependency_type`` matters here in particular:** a stock move's
 ``product_uom_qty`` (demand) and a move line's ``quantity`` (what was
@@ -123,6 +128,10 @@ Displaying stock on hand in a secondary unit
 2. A "Secondary Unit" smart button appears on the product form (next to
    "On Hand"), showing the current stock quantity converted into that
    unit. This is purely informational: it does not affect any transfer.
+3. The same quantity is shown on the product card of the catalog (e.g.
+   the *Catalog* button of a sale or purchase order), next to the stock
+   in the product unit (*10 On Hand / 2.5 box 4-4.0*). Products without
+   a "Second unit for inventory" show only the usual stock.
 
 Demanding and counting a secondary quantity on a transfer
 ---------------------------------------------------------
@@ -192,7 +201,7 @@ Bug Tracker
 Bugs are tracked on `GitHub Issues <https://github.com/OCA/stock-logistics-warehouse/issues>`_.
 In case of trouble, please check there if your issue has already been reported.
 If you spotted it first, help us to smash it by providing a detailed and welcomed
-`feedback <https://github.com/OCA/stock-logistics-warehouse/issues/new?body=module:%20stock_secondary_unit%0Aversion:%2019.0%0A%0A**Steps%20to%20reproduce**%0A-%20...%0A%0A**Current%20behavior**%0A%0A**Expected%20behavior**>`_.
+`feedback <https://github.com/OCA/stock-logistics-warehouse/issues/new?body=module:%20stock_secondary_unit%0Aversion:%2020.0%0A%0A**Steps%20to%20reproduce**%0A-%20...%0A%0A**Current%20behavior**%0A%0A**Expected%20behavior**>`_.
 
 Do not contact contributors directly about support or help with technical issues.
 
@@ -230,6 +239,17 @@ OCA, or the Odoo Community Association, is a nonprofit organization whose
 mission is to support the collaborative development of Odoo features and
 promote its widespread use.
 
-This module is part of the `OCA/stock-logistics-warehouse <https://github.com/OCA/stock-logistics-warehouse/tree/19.0/stock_secondary_unit>`_ project on GitHub.
+.. |maintainer-sergio-teruel| image:: https://github.com/sergio-teruel.png?size=40px
+    :target: https://github.com/sergio-teruel
+    :alt: sergio-teruel
+.. |maintainer-carlosdauden| image:: https://github.com/carlosdauden.png?size=40px
+    :target: https://github.com/carlosdauden
+    :alt: carlosdauden
+
+Current `maintainers <https://odoo-community.org/page/maintainer-role>`__:
+
+|maintainer-sergio-teruel| |maintainer-carlosdauden| 
+
+This module is part of the `OCA/stock-logistics-warehouse <https://github.com/OCA/stock-logistics-warehouse/tree/20.0/stock_secondary_unit>`_ project on GitHub.
 
 You are welcome to contribute. To learn how please visit https://odoo-community.org/page/Contribute.

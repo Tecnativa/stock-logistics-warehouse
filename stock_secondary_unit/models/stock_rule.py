@@ -8,8 +8,8 @@ from .stock_move import COUNT_PRESERVING_DEPENDENCY_TYPES
 class StockRule(models.Model):
     _inherit = "stock.rule"
 
-    def _push_prepare_move_copy_values(self, move_to_copy, new_date):
-        vals = super()._push_prepare_move_copy_values(move_to_copy, new_date)
+    def _push_prepare_move_copy_values(self, move_to_copy):
+        vals = super()._push_prepare_move_copy_values(move_to_copy)
         # secondary_uom_qty has copy=False (an active push chain must never
         # inherit a stale count from a cancelled/superseded move), so a
         # pushed move (e.g. the "ship" move of a pick_ship route) is
