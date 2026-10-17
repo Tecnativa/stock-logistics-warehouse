@@ -1,9 +1,9 @@
 # Copyright 2018 Tecnativa - Sergio Teruel
 # License AGPL-3.0 or later (https://www.gnu.org/licenses/agpl).
 from collections import defaultdict
+from typing import ClassVar
 
 from odoo import api, fields, models
-from odoo.tools.float_utils import float_compare
 
 # Secondary unit dependency types whose measured counts must survive a split
 # without being recomputed from the primary quantity.
@@ -11,11 +11,11 @@ COUNT_PRESERVING_DEPENDENCY_TYPES = ("independent", "secondary_priority")
 
 
 class StockMove(models.Model):
-    _inherit = ["stock.move", "product.secondary.unit.mixin"]
+    _inherit = ("stock.move", "product.secondary.unit.mixin")
     _name = "stock.move"
-    _secondary_unit_fields = {
+    _secondary_unit_fields: ClassVar[dict] = {
         "qty_field": "product_uom_qty",
-        "uom_field": "product_uom",
+        "uom_field": "uom_id",
     }
 
     product_uom_qty = fields.Float(
@@ -34,7 +34,7 @@ class StockMove(models.Model):
     secondary_uom_qty_done = fields.Float(
         compute="_compute_secondary_uom_qty_done",
         store=True,
-        digits="Product Unit of Measure",
+        digits="Product Unit",
     )
 
     @api.depends("secondary_uom_qty", "secondary_uom_id")
@@ -48,7 +48,7 @@ class StockMove(models.Model):
                 move.move_line_ids.mapped("secondary_uom_qty")
             )
 
-    @api.onchange("product_uom")
+    @api.onchange("uom_id")
     def onchange_product_uom_for_secondary(self):
         self._onchange_helper_product_uom_for_secondary()
 
@@ -175,12 +175,7 @@ class StockMove(models.Model):
             if move.secondary_uom_id.dependency_type in (
                 COUNT_PRESERVING_DEPENDENCY_TYPES
             ) and (
-                float_compare(
-                    move.secondary_uom_qty,
-                    0.0,
-                    precision_rounding=move.secondary_uom_id.uom_id.rounding or 0.01,
-                )
-                < 0
+                move.secondary_uom_id.uom_id.compare(move.secondary_uom_qty, 0.0) < 0
             ):
                 neg_secondary_qty_by_key[neg_key(move)] += move.secondary_uom_qty
         res = super()._merge_moves(merge_into=merge_into)
@@ -208,15 +203,18 @@ class StockMove(models.Model):
             move.invalidate_recordset(fnames=["secondary_uom_qty"])
         return res
 
-    def _action_confirm(self, merge=True, merge_into=False):
-        moves = super()._action_confirm(merge=merge, merge_into=merge_into)
+    def _action_confirm(self, merge=True, merge_into=False, create_proc=True):
+        moves = super()._action_confirm(
+            merge=merge, merge_into=merge_into, create_proc=create_proc
+        )
         # Core turns the remaining negative moves into returns flipping only the
         # sign of product_uom_qty, so count-preserving secondary quantities would
         # keep the negative one.
         for move in moves.filtered(
-            lambda m: m.secondary_uom_id.dependency_type
-            in COUNT_PRESERVING_DEPENDENCY_TYPES
-            and m.secondary_uom_qty < 0.0 < m.product_uom_qty
+            lambda m: (
+                m.secondary_uom_id.dependency_type in COUNT_PRESERVING_DEPENDENCY_TYPES
+                and m.secondary_uom_qty < 0.0 < m.product_uom_qty
+            )
         ):
             # Use _write to avoid retriggering the product_uom_qty compute.
             move._write({"secondary_uom_qty": -move.secondary_uom_qty})
@@ -233,9 +231,12 @@ class StockMove(models.Model):
 
 
 class StockMoveLine(models.Model):
-    _inherit = ["stock.move.line", "product.secondary.unit.mixin"]
+    _inherit = ("stock.move.line", "product.secondary.unit.mixin")
     _name = "stock.move.line"
-    _secondary_unit_fields = {"qty_field": "quantity", "uom_field": "product_uom_id"}
+    _secondary_unit_fields: ClassVar[dict] = {
+        "qty_field": "quantity",
+        "uom_field": "uom_id",
+    }
 
     quantity = fields.Float(
         store=True, readonly=False, compute="_compute_quantity", precompute=True
@@ -259,9 +260,11 @@ class StockMoveLine(models.Model):
         # gets this protection from the mixin's own helper, no need to
         # special-case it here too.
         already_measured = self.filtered(
-            lambda line: line.secondary_uom_id
-            and line.secondary_uom_id.dependency_type == "secondary_priority"
-            and line.quantity
+            lambda line: (
+                line.secondary_uom_id
+                and line.secondary_uom_id.dependency_type == "secondary_priority"
+                and line.quantity
+            )
         )
         (self - already_measured)._compute_helper_target_field_qty()
 

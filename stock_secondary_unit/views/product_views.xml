@@ -2,12 +2,12 @@
 <!-- Copyright 2018 Tecnativa - Sergio Teruel
      License AGPL-3.0 or later (https://www.gnu.org/licenses/agpl). -->
 <odoo>
-    <record id="view_template_property_form" model="ir.ui.view">
+    <record id="product_template_form_view_stock" model="ir.ui.view">
         <field name="name">Product template Secondary Unit</field>
         <field name="model">product.template</field>
-        <field name="inherit_id" ref="stock.view_template_property_form" />
+        <field name="inherit_id" ref="stock.product_template_form_view_stock" />
         <field name="arch" type="xml">
-            <xpath expr="//group[@name='inventory']" position="inside">
+            <xpath expr="//group[@name='group_lots_and_weight']" position="after">
                 <group string="Secondary unit" groups="stock.group_stock_user">
                     <field
                         name="stock_secondary_uom_id"
@@ -34,7 +34,7 @@
                     invisible="not show_forecasted_qty_status_button"
                     context="{'default_product_tmpl_id': id}"
                     class="oe_stat_button"
-                    icon="fa-building-o"
+                    icon="business"
                     groups="stock.group_stock_user"
                 >
                     <div class="o_field_widget o_stat_info">
@@ -72,7 +72,7 @@
                     name="action_product_forecast_report"
                     invisible="not show_forecasted_qty_status_button"
                     class="oe_stat_button"
-                    icon="fa-building-o"
+                    icon="business"
                     groups="stock.group_stock_user"
                     context="{'product_variant': True, 'default_product_id': id}"
                 >

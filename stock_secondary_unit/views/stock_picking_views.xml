@@ -11,10 +11,9 @@
                 expr="//field[@name='move_ids']/list/field[@name='product_uom_qty']"
                 position="before"
             >
-                <field name="show_operations" column_invisible="1" />
                 <field
                     name="secondary_uom_qty"
-                    readonly="(not is_initial_demand_editable) or (show_operations and is_locked and not is_initial_demand_editable)"
+                    readonly="not is_initial_demand_editable"
                     groups="uom.group_uom"
                     optional="show"
                 />
@@ -24,7 +23,7 @@
                                 '&amp;', ('product_tmpl_id.product_variant_ids', 'in', [product_id]),
                                          ('product_id', '=', False)] or [(0, '=', 1)]"
                     options="{'no_create': True}"
-                    readonly="(not is_initial_demand_editable) or (show_operations and is_locked and not is_initial_demand_editable)"
+                    readonly="not is_initial_demand_editable"
                     groups="uom.group_uom"
                     optional="show"
                 />

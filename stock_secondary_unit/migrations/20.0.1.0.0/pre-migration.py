@@ -12,6 +12,9 @@ def migrate(env, version):
     per-record Python recompute it would otherwise trigger for every
     existing stock.move.
     """
+    # Databases from 18.0 already have it
+    if openupgrade.column_exists(env.cr, "stock_move", "secondary_uom_qty_done"):
+        return
     openupgrade.add_columns(
         env,
         [("stock.move", "secondary_uom_qty_done", "float")],

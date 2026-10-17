@@ -8,6 +8,8 @@ from odoo.addons.base.tests.common import BaseCommon
 
 @tagged("-at_install", "post_install")
 class TestProductSecondaryUnit(BaseCommon):
+    _test_user_groups = ("stock.group_stock_manager", "uom.group_uom")
+
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
@@ -19,7 +21,6 @@ class TestProductSecondaryUnit(BaseCommon):
         cls.location_stock = cls.env.ref("stock.stock_location_stock")
         cls.picking_type_in = cls.env.ref("stock.picking_type_in")
         cls.picking_type_out = cls.env.ref("stock.picking_type_out")
-        cls.picking_type_out.show_operations = True
 
         cls.product_uom_kg = cls.env.ref("uom.product_uom_kgm")
         cls.product_uom_ton = cls.env.ref("uom.product_uom_ton")
@@ -115,7 +116,7 @@ class TestProductSecondaryUnit(BaseCommon):
         move_vals = {
             "product_id": product1.id,
             "secondary_uom_id": product1.product_tmpl_id.secondary_uom_ids[0].id,
-            "product_uom": product1.uom_id.id,
+            "uom_id": product1.uom_id.id,
             "product_uom_qty": 10.0,
             "location_id": self.location_supplier.id,
             "location_dest_id": self.location_stock.id,
@@ -167,14 +168,14 @@ class TestProductSecondaryUnit(BaseCommon):
             move.secondary_uom_qty = 1
             move.secondary_uom_id = product.product_tmpl_id.secondary_uom_ids[2]
             self.assertEqual(move.product_uom_qty, 10)
-            move.product_uom = self.product_uom_ton
+            move.uom_id = self.product_uom_ton
             self.assertAlmostEqual(move.secondary_uom_qty, 1000, 2)
 
         picking = picking_form.save()
         picking.action_confirm()
         stock_move_line = picking.move_line_ids
         stock_move_line.product_id = product
-        stock_move_line.product_uom_id = stock_move_line.product_id.uom_id.id
+        stock_move_line.uom_id = stock_move_line.product_id.uom_id.id
         stock_move_line.secondary_uom_qty = 1
         stock_move_line.secondary_uom_id = product.product_tmpl_id.secondary_uom_ids[0]
         self.assertEqual(stock_move_line.quantity, 0.5)
@@ -229,14 +230,13 @@ class TestProductSecondaryUnit(BaseCommon):
                 "location_id": self.location_supplier.id,
                 "location_dest_id": self.location_stock.id,
                 "picking_type_id": self.picking_type_in.id,
-                "move_ids_without_package": [
+                "move_ids": [
                     Command.create(
                         {
                             "product_id": product.id,
-                            "name": product.display_name,
                             "secondary_uom_id": secondary_unit.id,
                             "secondary_uom_qty": 40.0,
-                            "product_uom": product.uom_id.id,
+                            "uom_id": product.uom_id.id,
                             "product_uom_qty": 28.0,
                             "location_id": self.location_supplier.id,
                             "location_dest_id": self.location_stock.id,
@@ -283,10 +283,9 @@ class TestProductSecondaryUnit(BaseCommon):
         move = self.env["stock.move"].create(
             {
                 "product_id": product.id,
-                "name": product.display_name,
                 "secondary_uom_id": secondary_unit.id,
                 "secondary_uom_qty": 40.0,
-                "product_uom": product.uom_id.id,
+                "uom_id": product.uom_id.id,
                 "product_uom_qty": 28.0,
                 "location_id": self.location_supplier.id,
                 "location_dest_id": self.location_stock.id,
@@ -324,13 +323,12 @@ class TestProductSecondaryUnit(BaseCommon):
                 "location_id": self.location_supplier.id,
                 "location_dest_id": self.location_stock.id,
                 "picking_type_id": self.picking_type_in.id,
-                "move_ids_without_package": [
+                "move_ids": [
                     Command.create(
                         {
                             "product_id": product.id,
-                            "name": product.display_name,
                             "secondary_uom_id": secondary_unit.id,
-                            "product_uom": product.uom_id.id,
+                            "uom_id": product.uom_id.id,
                             "location_id": self.location_supplier.id,
                             "location_dest_id": self.location_stock.id,
                         }
@@ -390,14 +388,13 @@ class TestProductSecondaryUnit(BaseCommon):
                 "picking_type_id": pick_type.id,
                 "location_id": pick_type.default_location_src_id.id,
                 "location_dest_id": pick_type.default_location_dest_id.id,
-                "move_ids_without_package": [
+                "move_ids": [
                     Command.create(
                         {
                             "product_id": product.id,
-                            "name": product.display_name,
                             "secondary_uom_id": secondary_unit.id,
                             "secondary_uom_qty": 40.0,
-                            "product_uom": product.uom_id.id,
+                            "uom_id": product.uom_id.id,
                             "product_uom_qty": 28.0,
                             "location_id": pick_type.default_location_src_id.id,
                             "location_dest_id": pick_type.default_location_dest_id.id,
@@ -447,20 +444,17 @@ class TestProductSecondaryUnit(BaseCommon):
         self.assertEqual(ship_move.secondary_uom_qty, 30.0)
 
         # Now validate the backorder pick too: its push creates a second
-        # ship move that core merges into the first one.
+        # ship move with what was counted on it.
         backorder_move_line = pick_backorder.move_line_ids
         backorder_move_line.quantity = 6.0
         backorder_move_line.secondary_uom_qty = 10.0
         pick_backorder.move_ids.picked = True
         pick_backorder.button_validate()
 
-        self.assertEqual(len(ship_move.exists()), 1)
-        self.assertEqual(ship_move.product_uom_qty, 28.0)
-        self.assertEqual(
-            ship_move.move_orig_ids, pick.move_ids | pick_backorder.move_ids
-        )
-        # The merge must add the backorder's pieces too, not just its kg.
-        self.assertEqual(ship_move.secondary_uom_qty, 40.0)
+        ship_moves = (pick.move_ids | pick_backorder.move_ids).move_dest_ids
+        self.assertEqual(sum(ship_moves.mapped("product_uom_qty")), 28.0)
+        # The backorder's pieces are pushed too, not just its kg.
+        self.assertEqual(sum(ship_moves.mapped("secondary_uom_qty")), 40.0)
 
     def test_pick_ship_route_secondary_priority_no_backorder(self):
         """Same push route, but the user finalizes the partial pick with
@@ -530,9 +524,8 @@ class TestProductSecondaryUnit(BaseCommon):
                 "move_ids": [
                     Command.create(
                         {
-                            "name": product.display_name,
                             "product_id": product.id,
-                            "product_uom": product.uom_id.id,
+                            "uom_id": product.uom_id.id,
                             "product_uom_qty": 20,
                             "secondary_uom_id": secondary_unit.id,
                             "secondary_uom_qty": 2,
@@ -568,8 +561,9 @@ class TestProductSecondaryUnit(BaseCommon):
         self.assertEqual(next_move.secondary_uom_qty, 1)
         self.assertEqual(picking.move_line_ids.secondary_uom_qty, 0)
         backorder.button_validate()
-        self.assertEqual(next_move.product_uom_qty, 20)
-        self.assertEqual(next_move.secondary_uom_qty, 2)
+        next_moves = (picking.move_ids | backorder.move_ids).move_dest_ids
+        self.assertEqual(sum(next_moves.mapped("product_uom_qty")), 20)
+        self.assertEqual(sum(next_moves.mapped("secondary_uom_qty")), 2)
         self.assertEqual(backorder.move_line_ids.secondary_uom_qty, 0)
 
     def test_uncounted_receipt_backorder_secondary_priority(self):
@@ -583,17 +577,19 @@ class TestProductSecondaryUnit(BaseCommon):
 
     def _create_confirmed_picking_out(self, secondary_unit, secondary_uom_qty, qty):
         product = self.product_template.product_variant_ids[0]
-        with Form(
-            self.StockPicking.with_context(
-                planned_picking=True,
-                default_picking_type_id=self.picking_type_out.id,
-            )
-        ) as picking_form:
-            with picking_form.move_ids_without_package.new() as move:
-                move.product_id = product
-                move.secondary_uom_id = secondary_unit
-                move.secondary_uom_qty = secondary_uom_qty
-                move.product_uom_qty = qty
+        with (
+            Form(
+                self.StockPicking.with_context(
+                    planned_picking=True,
+                    default_picking_type_id=self.picking_type_out.id,
+                )
+            ) as picking_form,
+            picking_form.move_ids.new() as move,
+        ):
+            move.product_id = product
+            move.secondary_uom_id = secondary_unit
+            move.secondary_uom_qty = secondary_uom_qty
+            move.product_uom_qty = qty
         picking = picking_form.save()
         picking.action_confirm()
         return picking
@@ -605,7 +601,7 @@ class TestProductSecondaryUnit(BaseCommon):
         previous_moves = StockMove.search([("product_id", "=", product.id)])
         with Form(picking) as picking_form:
             for secondary_uom_qty, qty in quantities:
-                with picking_form.move_ids_without_package.new() as move:
+                with picking_form.move_ids.new() as move:
                     move.product_id = product
                     move.secondary_uom_id = secondary_unit
                     move.secondary_uom_qty = secondary_uom_qty
@@ -681,10 +677,9 @@ class TestProductSecondaryUnit(BaseCommon):
         move = self.env["stock.move"].create(
             {
                 "product_id": product.id,
-                "name": product.display_name,
                 "secondary_uom_id": secondary_unit.id,
                 "secondary_uom_qty": 12.0,
-                "product_uom": product.uom_id.id,
+                "uom_id": product.uom_id.id,
                 "product_uom_qty": 8.4,
                 "location_id": self.location_supplier.id,
                 "location_dest_id": self.location_stock.id,
@@ -720,10 +715,9 @@ class TestProductSecondaryUnit(BaseCommon):
         )
         move_vals = {
             "product_id": product.id,
-            "name": product.display_name,
             "secondary_uom_id": secondary_unit.id,
             "secondary_uom_qty": 20.0,
-            "product_uom": product.uom_id.id,
+            "uom_id": product.uom_id.id,
             "product_uom_qty": 14.0,
             "location_id": self.location_supplier.id,
             "location_dest_id": self.location_stock.id,
