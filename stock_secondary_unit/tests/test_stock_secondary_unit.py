@@ -144,29 +144,31 @@ class TestProductSecondaryUnit(BaseCommon):
 
     def test_picking_secondary_unit(self):
         product = self.product_template.product_variant_ids[0]
-        with Form(
-            self.StockPicking.with_context(
-                planned_picking=True,
-                default_picking_type_id=self.picking_type_out.id,
-            )
-        ) as picking_form:
-            with picking_form.move_ids.new() as move:
-                move.product_id = product
-                move.secondary_uom_qty = 1
-                move.secondary_uom_id = product.product_tmpl_id.secondary_uom_ids[0]
-                self.assertEqual(move.product_uom_qty, 0.5)
-                move.secondary_uom_qty = 2
-                self.assertEqual(move.product_uom_qty, 1)
-                move.secondary_uom_id = product.product_tmpl_id.secondary_uom_ids[1]
-                self.assertEqual(move.product_uom_qty, 1.8)
-                move.product_uom_qty = 5
-                self.assertAlmostEqual(move.secondary_uom_qty, 5.56, 2)
-                # Change uom from stock move line
-                move.secondary_uom_qty = 1
-                move.secondary_uom_id = product.product_tmpl_id.secondary_uom_ids[2]
-                self.assertEqual(move.product_uom_qty, 10)
-                move.product_uom = self.product_uom_ton
-                self.assertAlmostEqual(move.secondary_uom_qty, 1000, 2)
+        with (
+            Form(
+                self.StockPicking.with_context(
+                    planned_picking=True,
+                    default_picking_type_id=self.picking_type_out.id,
+                )
+            ) as picking_form,
+            picking_form.move_ids.new() as move,
+        ):
+            move.product_id = product
+            move.secondary_uom_qty = 1
+            move.secondary_uom_id = product.product_tmpl_id.secondary_uom_ids[0]
+            self.assertEqual(move.product_uom_qty, 0.5)
+            move.secondary_uom_qty = 2
+            self.assertEqual(move.product_uom_qty, 1)
+            move.secondary_uom_id = product.product_tmpl_id.secondary_uom_ids[1]
+            self.assertEqual(move.product_uom_qty, 1.8)
+            move.product_uom_qty = 5
+            self.assertAlmostEqual(move.secondary_uom_qty, 5.56, 2)
+            # Change uom from stock move line
+            move.secondary_uom_qty = 1
+            move.secondary_uom_id = product.product_tmpl_id.secondary_uom_ids[2]
+            self.assertEqual(move.product_uom_qty, 10)
+            move.product_uom = self.product_uom_ton
+            self.assertAlmostEqual(move.secondary_uom_qty, 1000, 2)
 
         picking = picking_form.save()
         picking.action_confirm()
