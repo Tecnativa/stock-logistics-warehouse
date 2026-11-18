@@ -400,7 +400,9 @@ on the product form next to “On Hand”, showing the current stock
 quantity converted into it. This is read-only, informational, and
 independent of whatever secondary unit an individual move ends up
 using. The same quantity is shown on the product card of the catalog
-(sale, purchase…).</li>
+(sale, purchase…). It is stored on each variant: setting it on the
+product template writes it on all its variants, and the template shows
+the one its variants share.</li>
 </ul>
 <p><strong>Why ``dependency_type`` matters here in particular:</strong> a stock move’s
 <tt class="docutils literal">product_uom_qty</tt> (demand) and a move line’s <tt class="docutils literal">quantity</tt> (what was
@@ -480,7 +482,9 @@ doesn’t have to re-derive that sum ad hoc every time.</li>
 <ol class="arabic simple">
 <li>On a product, go to <em>Inventory tab &gt; Secondary unit</em> and choose which
 of the product’s configured secondary units should be used for the
-on-hand display (“Second unit for inventory”).</li>
+on-hand display (“Second unit for inventory”). Set on the product
+template, it is written on all its variants; if the variants end up
+with distinct ones, the template shows none.</li>
 <li>A “Secondary Unit” smart button appears on the product form (next to
 “On Hand”), showing the current stock quantity converted into that
 unit. This is purely informational: it does not affect any transfer.</li>
